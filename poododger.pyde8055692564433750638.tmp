@@ -1,0 +1,258 @@
+import os
+import time
+import random
+
+path = os.getcwd()
+
+class Game:
+    def __init__(self, width, height, ground):
+        self.width = width
+        self.height = height
+        self.ground = ground
+        ### player init: x_pos, ground, hygienelvl, radius ###
+        self.player = Player(self.width/2, ground, 2, 20)
+        self.fallAcceleration = 0.2
+        self.poopAcceleration = 0.4
+        self.fallObjectList = []
+        self.fallObjectGenFreq = random.randint(50, 200)
+        self.poopGenFreq = 2
+        self.poopCount = 0
+        self.score = 0
+        self.frame = 0
+        self.totalFrame = 0
+        self.mode = 'main'
+        self.imglist = []
+        self.imglist.append(loadImage(path+'/poop.png')) #0
+        self.imglist.append(loadImage(path+'/player.png')) #1
+        self.imglist.append(loadImage(path+'/rainbow.png')) #2
+        self.imglist.append(loadImage(path+'/shampoo.png')) #3
+        self.imglist.append(loadImage(path+'/umbrella.png')) #4
+        self.imglist.append(loadImage(path+'/clock.png')) #5
+        self.imglist.append(loadImage(path+'/start.png')) #6
+        
+    def objectGen(self):
+        #fallObject(x, y, r)
+        if self.totalFrame % self.poopGenFreq == 0:
+            self.fallObjectList.append(Poop(random.randint(0,self.width), 0, 12))
+            self.poopGenFreq = random.randint(1, 4)
+        if self.totalFrame % self.fallObjectGenFreq == 0:
+            self.fallObjectList.append(Shampoo(random.randint(0,self.width), 0, 12))
+            self.fallObjectGenFreq = random.randint(50, 200)
+
+    def display(self):
+        self.frame = (self.frame + 0.1)%2   #frame becomes a number between 0 and 1.
+        if self.mode == 'main':
+            ellipse(200, 200, 20, 20)
+            self.player.display()
+            if self.width/2 - 100 < mouseX < self.width/2 + 100 and self.height/2 - 30 < mouseY < self.height/2 - 30:
+                image(loadImage(path+'/start.png'), self.width/2 - 100, self.height/2 - 30, 200, 60, 0, 0, 200, 60)
+            else:
+                image(loadImage(path+'/start.png'), self.width/2 - 100, self.height/2 - 30, 200, 60, 0, 60, 200, 120)
+            
+        elif self.mode == 'gameplay':
+            game.totalFrame += 1
+            self.objectGen()
+            self.player.update()
+            self.player.display()
+            for fallObject in self.fallObjectList:
+                fallObject.update()
+                fallObject.display()
+        elif self.mode == 'gameover':
+            for fallObject in self.fallObjectList:
+                fallObject.display()
+            self.player.display()
+            image(self.imglist[0], 0, 0, 300, 300, 0, 0, 40, 40)
+#            imamamamamamamage
+
+class Player:
+    def __init__(self, x_pos, ground, hygienelvl, radius):
+        self.x_pos = x_pos
+        self.radius = radius
+        self.vx = 0
+        self.ground = ground
+        self.hygienelvl = hygienelvl
+        self.godMode = False
+        self.clockMode = False
+        self.keyInput = {'LEFT':False, 'RIGHT':False}
+
+    def update(self):
+        if self.keyInput['LEFT']:
+            if self.godMode:
+                self.vx = -2
+            elif not self.godMode:
+                self.vx = -7
+        elif self.keyInput['RIGHT']:
+            if self.godMode:
+                self.vx = 2
+            elif not self.godMode:
+                self.vx = 7
+        else:
+            self.vx = 0
+        self.x_pos += self.vx
+        if self.x_pos < 0:
+            self.x_pos = 0
+        elif self.x_pos > game.width:
+            self.x_pos = game.width
+
+    def display(self):
+        
+        stroke(0)
+        noFill()
+        ellipse(self.x_pos, self.ground, self.radius*2, self.radius*2)
+        
+        ### int(frame) makes frame value (=indext of imglist) either 0 or 1
+        if self.godMode:
+            if timer.queryGodTime() > 20:
+                self.godMode = False
+            if self.vx == 0:
+                image(game.imglist[2], self.x_pos - self.radius, self.ground - self.radius, self.radius*2, self.radius*2, 28*int(game.frame), 48*0, 28*(1+int(game.frame)), 48*1)
+            elif self.vx < 0:
+                image(game.imglist[2], self.x_pos - self.radius, self.ground - self.radius, self.radius*2, self.radius*2, 28*int(game.frame), 48*1, 28*(1+int(game.frame)), 48*2)
+            elif self.vx > 0:
+                image(game.imglist[2], self.x_pos - self.radius, self.ground - self.radius, self.radius*2, self.radius*2, 28*int(game.frame), 48*2, 28*(1+int(game.frame)), 48*3)
+        elif not self.godMode:
+            if self.vx == 0:
+                image(game.imglist[1], self.x_pos - self.radius, self.ground - self.radius, self.radius*2, self.radius*2, 28*int(game.frame), 48*0, 28*(1+int(game.frame)), 48*1)
+                #image(self.imglist[int(game.frame)], self.x_pos - self.radius, self.ground - self.radius, self.radius*2, self.radius*2, 0, 0, 28, 44)
+            elif self.vx < 0:
+                image(game.imglist[1], self.x_pos - self.radius, self.ground - self.radius, self.radius*2, self.radius*2, 28*int(game.frame), 48*1, 28*(1+int(game.frame)), 48*2)
+                #image(self.imglist[2+int(game.frame)], self.x_pos - self.radius, self.ground - self.radius, self.radius*2, self.radius*2, 0, 0, 28, 44)
+            elif self.vx > 0:
+                image(game.imglist[1], self.x_pos - self.radius, self.ground - self.radius, self.radius*2, self.radius*2, 28*int(game.frame), 48*2, 28*(1+int(game.frame)), 48*3)
+                #image(self.imglist[4+int(game.frame)], self.x_pos - self.radius, self.ground - self.radius, self.radius*2, self.radius*2, 0, 0, 28, 44)
+
+
+
+class FallObject():
+    def __init__ (self,x,y,r):
+        self.x = x
+        self.y = y
+        self.r = r
+        self.g = game.ground
+        self.v = 0
+    
+    def update(self):
+        self.y += self.v
+        self.v += game.fallAcceleration
+        if self.y > self.g:
+            game.fallObjectList.remove(self)
+        self.hitPlayer()
+        
+    def display(self):
+        stroke(0)
+        noFill()
+        ellipse(self.x,self.y,self.r*2,self.r*2)
+
+    def hitPlayer(self):
+        pass
+        
+
+
+
+class Poop(FallObject):
+    def __init__ (self,x,y,r):
+        FallObject.__init__(self,x,y,r)
+        self.v = 1
+    
+    def update(self):
+        self.y += self.v
+        self.v += game.poopAcceleration
+        if self.y > self.g:
+            game.fallObjectList.remove(self)
+            game.poopCount += 1
+            print('poogcount', game.poopCount, 'time.query', timer.query(), 'frame', game.totalFrame)
+        if ((self.x - game.player.x_pos)**2 + (self.y - (game.player.ground - game.player.radius))**2)**0.5 < self.r+game.player.radius:
+            self.hitPlayer()
+    
+    def hitPlayer(self):
+        if game.player.godMode == False:
+            game.fallObjectList.remove(self)
+            if game.player.hygienelvl > 1:
+                game.player.hygienelvl -= 1
+                game.player.godMode = True
+                timer.startGodTime()
+
+            elif game.player.hygienelvl == 1:
+                game.player.hygienelvl -= 1
+                print('gameover')
+                game.mode = 'gameover'
+                    
+    def display(self):
+        FallObject.display(self)
+        image(game.imglist[0], self.x - self.r, self.y - self.r, self.r*2, self.r*2, 0, 0, 40, 40)
+                
+class Shampoo(FallObject):
+    def __init__ (self,x,y,r):
+        FallObject. __init__ (self,x,y,r)
+    
+    def hitPlayer(self):
+        if ((self.x - game.player.x_pos)**2 + (self.y - (game.player.ground - game.player.radius))**2)**0.5 < self.r+game.player.radius:
+            if game.player.hygienelvl < 3:
+                game.player.hygienelvl += 1
+    
+    #def display
+        
+class Umbrella(FallObject):
+    def __init__ (self,x,y,r):
+        FallObject. __init__ (self,x,y,r)
+    
+    def hitPlayer(self):
+        if ((self.x - game.player.x_pos)**2 + (self.y - (game.player.ground - game.player.radius))**2)**0.5 < self.r+game.player.radius:
+            game.player.godMode = True
+            
+    
+'''class Clock(FallObject):
+    
+class poocounter
+'''
+
+class Timer():
+    def __init__(self):
+        self.startTime = 0
+        self.godTime = 0
+    def start(self):
+        #starts the timer, starts when 'gamestart' button pressed'
+        self.startTime = int(time.time())
+    def query(self):
+        #returns how many 0.1 seconds have past since start
+        return int(time.time()*10 - self.startTime*10)
+    def startGodTime(self):
+        self.godTime = int(time.time())
+    def queryGodTime(self):
+        return int(time.time()*10 - self.godTime*10)
+     
+        
+def keyPressed():
+    if keyCode == LEFT:
+        game.player.keyInput['LEFT'] = True
+    elif keyCode == RIGHT:
+        game.player.keyInput['RIGHT'] = True
+     
+     
+def keyReleased():
+    if keyCode == LEFT:
+        game.player.keyInput['LEFT'] = False
+        print('LEFT')
+    elif keyCode == RIGHT:
+        game.player.keyInput['RIGHT'] = False
+
+def mouseClicked():
+    if game.mode == 'main' and game.width/2 - 100 < mouseX < game.width/2 +100 and game.height/2 -30 < mouseY < game.height/2 + 30:
+        game.mode = 'gameplay'
+        timer.start()
+#     if gamestart pressed then chagne mode and start timer 
+
+game = Game(800,600,550)
+timer = Timer()
+
+def setup():
+    background(255)
+    size(game.width,game.height)
+    
+
+def draw():
+    background(255)
+    game.display()
+    textSize(30)
+    fill(0)
+    text ('Score: '+str(game.poopCount)+'\n'+'Life: '+ str(game.player.hygienelvl), game.width - 200, 30)
